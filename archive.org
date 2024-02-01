@@ -1,0 +1,9 @@
+#+TITLE: Archive
+
+- [[file:emacs-ocaml-lsp.org][Emacs configuration for merlin-lsp, the OCaml LSP server]]
+- [[file:debian-remove-swap.org][Resize or remove swap on Debian]]
+- [[file:opam-npm.org][Introduction to opam for npm/yarn users]]
+- [[file:opam-sandbox.org][Lock file and dev dependencies with opam]]
+- [[file:opam-compilation-cache.org][Compilation cache in opam]]
+- [[file:ocaml-comment-style-emacs.org][Configure style of ocaml comments in emacs]]
+- [[file:2018-04-15-setup-reasoncli-opam.org][Good setup to work with reason-cli and opam]]

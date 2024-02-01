@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2019-03-03 Sun 07:24 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lock file and dev dependencies with opam</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="Louis Roché">
+<meta name="description" content="How to work with a sandbox workflow when using opam"
+>
+<meta name="keywords" content="OCaml,opam,npm,sandbox,lock file">
+<link rel="stylesheet" href="/org.css" type="text/css"><script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2019 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="org-div-home-and-up">
+ <a accesskey="h" href=""> UP </a>
+ |
+ <a accesskey="H" href="archive.html"> HOME </a>
+</div><div id="content">
+<header>
+<h1 class="title">Lock file and dev dependencies with opam</h1>
+</header><nav id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#org0af90b7">Lock file</a></li>
+<li><a href="#org11d82bb">Development dependencies</a></li>
+<li><a href="#org196e033">TL;DR</a>
+<ul>
+<li><a href="#org1a8c876">Create a lock file</a></li>
+<li><a href="#orgf5b80aa">Create a sandbox for an application with lock file and dev dependencies</a></li>
+<li><a href="#orgb4ef1f1">Update the sandbox state after a modification of the opam file</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</nav>
+<p>
+When developing an OCaml application or a library, it is sometimes
+convenient to have a way to ensure that every developer is using the
+exact same set of packages in their opam switches. It avoids spending
+hours understanding how all minor versions of every packages are
+interacting with each other.
+</p>
+
+<p>
+This workflow is not the one advertised by default when using
+<code>opam</code>. But since the version 2 of opam, there is support for
+everything we need for a good sandbox setup. Namely: local switches,
+installing dependencies of a package without having to pin it, and
+lock files. You should definitely upgrade to opam2 if you haven't yet!
+</p>
+
+<p>
+In addition to dependencies for the application itself, it is
+convenient to have a way of describing dependencies that are necessary
+only for people working on the development. This is the
+<code>dev-dependencies</code> field in <code>package.json</code> for npm/yarn.
+</p>
+
+<p>
+I will try to describe what is my setup to work with a sandbox
+workflow.
+</p>
+
+<p>
+Note that it works even better when <a href="opam-compilation-cache.html">opam is configured to use
+compilation cache</a>.
+</p>
+
+<div id="outline-container-org0af90b7" class="outline-2">
+<h2 id="org0af90b7">Lock file</h2>
+<div class="outline-text-2" id="text-org0af90b7">
+<p>
+The support for lock files is not included in opam by default. But
+there is a plugin which can be installed from opam and does everything
+I need. It is developed by the author of opam. So there should be
+nothing shady there.
+</p>
+
+<p>
+Installing the plugin and creating a lock file can be done in two
+commands.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">opam install opam-lock
+opam lock ./app.opam
+</pre>
+</div>
+
+<p>
+This will create a <code>app.opam.locked</code> file. This is a normal opam
+file. But it contains an exact version for all of the dependencies.
+</p>
+
+<p>
+The equivalent of <code>npm install</code> or <code>yarn</code> in a directory would be:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">opam install . --deps-only --locked
+</pre>
+</div>
+
+<p>
+This command will install all the opam packages that are defined in
+the current directory, using locked versions if available.
+</p>
+
+<ul class="org-ul">
+<li><code>.</code> tells opam to search for opam files in the current directory.</li>
+<li><code>--deps-only</code> tells opam to only install the dependencies of the
+packages. Not the packages themselves. As the goal is to develop
+those packages, it is not necessary to have them installed.</li>
+<li><code>--locked</code> tells opam to take the locked version of an opam file if
+available. So when both <code>app.opam</code> and <code>app.opam.locked</code> are
+available, <code>app.opam.locked</code> will be used.</li>
+</ul>
+
+<p>
+If there are multiple packages in the same directory, and one wants to
+install only a subset of them, the expected packages must be specified
+during the install command.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">opam install ./app1.opam.locked ./app2.opam.locked --deps-only
+</pre>
+</div>
+
+<p>
+Once the lock file is created, new people starting to work on the
+project would setup their environment in one command:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">opam switch create . --deps-only --locked
+</pre>
+</div>
+
+<p>
+There is no need to specify an OCaml version when creating the
+switch. It is defined in the lock file. The <code>--deps-only</code> and
+<code>--locked</code> options have the same effects as described previously.
+</p>
+
+<p>
+I used to rely on <code>opam switch export</code> and <code>opam switch import</code> to
+simulate lock files. But it doesn't work as well. It contains all the
+extra packages that one might have in the switch for example. This is
+still the best solution if <i>all</i> the versions of <i>all</i> the packages
+must be fixed.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org11d82bb" class="outline-2">
+<h2 id="org11d82bb">Development dependencies</h2>
+<div class="outline-text-2" id="text-org11d82bb">
+<p>
+Unfortunately there is no support for dev dependencies in opam
+directly. More precisely there is a <code>dev</code> variable that can be used on
+the dependencies. But the dependencies marked like this will be
+installed when the package is pinned too. Which may not be the
+expected behavior. This is fine only for packages that are not meant
+to be published.
+</p>
+
+<p>
+My solution is to create an extra <code>dev.opam</code> file. This package will
+contain only dependencies. No build command is required.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-tuareg-opam"><span class="org-keyword">opam-version</span>: <span class="org-string">"2.0"</span>
+<span class="org-keyword">maintainer</span>: <span class="org-string">"Louis Roch&#233; <a href="mailto:louis%40louisroche.net">&lt;louis@louisroche.net&gt;</a>"</span>
+<span class="org-keyword">authors</span>: <span class="org-string">"Louis Roch&#233; <a href="mailto:louis%40louisroche.net">&lt;louis@louisroche.net&gt;</a>"</span>
+<span class="org-keyword">homepage</span>: <span class="org-string">"https://github.com/Khady/ocaml-junit"</span>
+<span class="org-keyword">bug-reports</span>: <span class="org-string">"https://github.com/Khady/ocaml-junit/issues"</span>
+<span class="org-keyword">depends</span>: <span class="org-rainbow-delimiters-depth-1">[</span>
+  <span class="org-string">"merlin"</span>
+  <span class="org-string">"ocp-indent"</span>
+  <span class="org-string">"ocp-index"</span>
+  <span class="org-string">"opam-lock"</span>
+  <span class="org-string">"utop"</span>
+<span class="org-rainbow-delimiters-depth-1">]</span>
+</pre>
+</div>
+
+<p>
+Now, the <code>opam install</code> command described previously will also install
+all the dev dependencies.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">opam install . --deps-only --locked
+</pre>
+</div>
+
+<p>
+<code>--locked</code> is not required here, as there is no strict constrain on
+the versions of the dev dependencies. But I think it's a good practice
+to use it.
+</p>
+
+<p>
+For the record, the equivalent using the <code>dev</code> variable is:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-tuareg-opam"><span class="org-keyword">opam-version</span>: <span class="org-string">"2.0"</span>
+<span class="org-keyword">maintainer</span>: <span class="org-string">"Louis Roch&#233; <a href="mailto:louis%40louisroche.net">&lt;louis@louisroche.net&gt;</a>"</span>
+<span class="org-keyword">authors</span>: <span class="org-string">"Louis Roch&#233; <a href="mailto:louis%40louisroche.net">&lt;louis@louisroche.net&gt;</a>"</span>
+<span class="org-keyword">homepage</span>: <span class="org-string">"https://github.com/Khady/ocaml-junit"</span>
+<span class="org-keyword">bug-reports</span>: <span class="org-string">"https://github.com/Khady/ocaml-junit/issues"</span>
+<span class="org-keyword">license</span>: <span class="org-string">"LGPLv3+ with OCaml linking exception"</span>
+<span class="org-keyword">dev-repo</span>: <span class="org-string">"git+https://github.com/Khady/ocaml-junit.git"</span>
+<span class="org-keyword">doc</span>: <span class="org-string">"https://khady.github.io/ocaml-junit/"</span>
+<span class="org-keyword">tags</span>: <span class="org-rainbow-delimiters-depth-1">[</span><span class="org-string">"junit"</span> <span class="org-string">"jenkins"</span><span class="org-rainbow-delimiters-depth-1">]</span>
+<span class="org-keyword">depends</span>: <span class="org-rainbow-delimiters-depth-1">[</span>
+  <span class="org-string">"ocaml"</span> <span class="org-rainbow-delimiters-depth-2">{</span>&gt;= <span class="org-string">"4.02.3"</span><span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-string">"jbuilder"</span> <span class="org-rainbow-delimiters-depth-2">{</span><span class="org-constant">build</span> &amp; &gt;= <span class="org-string">"1.0+beta10"</span><span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-string">"ptime"</span>
+  <span class="org-string">"tyxml"</span> <span class="org-rainbow-delimiters-depth-2">{</span>&gt;= <span class="org-string">"4.0.0"</span><span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-string">"odoc"</span> <span class="org-rainbow-delimiters-depth-2">{</span>with-<span class="org-constant">doc</span> &amp; &gt;= <span class="org-string">"1.1.1"</span><span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-string">"merlin"</span> <span class="org-rainbow-delimiters-depth-2">{</span>dev<span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-string">"ocp-indent"</span> <span class="org-rainbow-delimiters-depth-2">{</span>dev<span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-string">"ocp-index"</span> <span class="org-rainbow-delimiters-depth-2">{</span>dev<span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-string">"opam-lock"</span> <span class="org-rainbow-delimiters-depth-2">{</span>dev<span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-string">"utop"</span> <span class="org-rainbow-delimiters-depth-2">{</span>dev<span class="org-rainbow-delimiters-depth-2">}</span>
+<span class="org-rainbow-delimiters-depth-1">]</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org196e033" class="outline-2">
+<h2 id="org196e033">TL;DR</h2>
+<div class="outline-text-2" id="text-org196e033">
+</div>
+<div id="outline-container-org1a8c876" class="outline-3">
+<h3 id="org1a8c876">Create a lock file</h3>
+<div class="outline-text-3" id="text-org1a8c876">
+<div class="org-src-container">
+<pre class="src src-sh">opam install opam-lock
+opam lock ./app.opam
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgf5b80aa" class="outline-3">
+<h3 id="orgf5b80aa">Create a sandbox for an application with lock file and dev dependencies</h3>
+<div class="outline-text-3" id="text-orgf5b80aa">
+<div class="org-src-container">
+<pre class="src src-sh">opam switch create . --deps-only --locked
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgb4ef1f1" class="outline-3">
+<h3 id="orgb4ef1f1">Update the sandbox state after a modification of the opam file</h3>
+<div class="outline-text-3" id="text-orgb4ef1f1">
+<div class="org-src-container">
+<pre class="src src-sh">opam install . --deps-only --locked
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<a class="author" href="https://khady.info">Louis Roché</a> <span class="date">2018-08-24 Fri 00:00</span>
+          <span class="creator"><a href="https://www.gnu.org/software/emacs/">Emacs</a> 25.1.1 (<a href="https://orgmode.org">Org</a> mode 9.2.1)</span>
+</div>
+</body>
+</html>

@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2019-03-03 Sun 07:24 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Introduction to opam for npm/yarn users</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="Louis Roché">
+<meta name="description" content="Corresponding opam commands to the most common npm and yarn usages."
+>
+<meta name="keywords" content="OCaml,opam,npm,sandbox,lock file,yarn,JavaScript">
+<link rel="stylesheet" href="/org.css" type="text/css"><script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2019 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="org-div-home-and-up">
+ <a accesskey="h" href=""> UP </a>
+ |
+ <a accesskey="H" href="archive.html"> HOME </a>
+</div><div id="content">
+<header>
+<h1 class="title">Introduction to opam for npm/yarn users</h1>
+</header><nav id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#org8e58b5b">Getting Started</a></li>
+<li><a href="#org5072071">Initial configuration</a>
+<ul>
+<li><a href="#org55e7822">Installation</a></li>
+<li><a href="#org20f5233">Initialization</a></li>
+</ul>
+</li>
+<li><a href="#org1e5fd84">Minimal package.json</a></li>
+<li><a href="#org87609de">npm/yarn commands</a>
+<ul>
+<li><a href="#org043e30c">npm install / yarn</a></li>
+<li><a href="#org8dc67b4">npm install &lt;pkg&gt; / yarn add</a></li>
+<li><a href="#org3c4d0ba">npm link / yarn link</a></li>
+<li><a href="#org4876d99">npm upgrade / yarn upgrade</a></li>
+</ul>
+</li>
+<li><a href="#orge03669d">Extra package.json concepts</a>
+<ul>
+<li><a href="#orgc269be9">dev dependencies</a></li>
+<li><a href="#orgbb277ca">lock files</a></li>
+<li><a href="#orgb75492a">scripts</a></li>
+<li><a href="#orgb22666a">Libraries</a></li>
+</ul>
+</li>
+<li><a href="#org151e869">Summary</a>
+<ul>
+<li><a href="#orgc913587">Installation</a></li>
+<li><a href="#orge71dfbc">Usage</a>
+<ul>
+<li><a href="#org938f8c5">Starting a new project</a></li>
+<li><a href="#orgd55650b">Updating the list of packages available</a></li>
+<li><a href="#orgaba8193">Adding a dependency</a></li>
+<li><a href="#org22d3718">Upgrading a dependency</a></li>
+<li><a href="#org296cd3d">Removing a dependency</a></li>
+<li><a href="#org5140e95">Installing all the dependencies of project</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</nav>
+
+<div id="outline-container-org8e58b5b" class="outline-2">
+<h2 id="org8e58b5b">Getting Started</h2>
+<div class="outline-text-2" id="text-org8e58b5b">
+<p>
+<a href="https://opam.ocaml.org/">opam</a> is the main package manager for OCaml. This is the equivalent of
+<a href="https://www.npmjs.com/">npm</a> or <a href="https://yarnpkg.com/en/">yarn</a>. opam is a command line tool to manipulate packages that
+are defined in opam files. Most of the <a href="https://opam.ocaml.org/packages/">opam packages</a> are published on
+the <a href="https://github.com/ocaml/opam-repository">opam repository</a> which is the equivalent of the npm registry.
+</p>
+
+<p>
+This document presents the corresponding opam commands, files and
+configurations for the most common npm idioms.
+</p>
+
+<p>
+opam is now available on version 2. If you didn't upgrade yet, you
+better hurry.
+</p>
+
+<p>
+There is a <a href="#org151e869">summary</a> at the end of the page, containing all the most
+common commands to know. And the the official opam introduction
+contains a lot of information:
+<a href="https://opam.ocaml.org/doc/2.0/Usage.html">https://opam.ocaml.org/doc/2.0/Usage.html</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-org5072071" class="outline-2">
+<h2 id="org5072071">Initial configuration</h2>
+<div class="outline-text-2" id="text-org5072071">
+</div>
+<div id="outline-container-org55e7822" class="outline-3">
+<h3 id="org55e7822">Installation</h3>
+<div class="outline-text-3" id="text-org55e7822">
+<p>
+First thing is to install opam, as one would install npm. There is an
+<a href="https://opam.ocaml.org/doc/2.0/Install.html">official documentation page</a> to install opam. Most of the time, we can
+simply get it from a package manager. Otherwise, binaries are provided
+for every platform.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org20f5233" class="outline-3">
+<h3 id="org20f5233">Initialization</h3>
+<div class="outline-text-3" id="text-org20f5233">
+<p>
+npm and yarn don't need any initialization after they are installed,
+even if it is possible to customize a few settings. But for opam there
+is a necessary step.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">opam init -a
+</pre>
+</div>
+
+<p>
+Let's try to explain more in details what it does.
+</p>
+
+<p>
+I am quoting the documentation of <code>opam init</code> itself here, as it
+explains clearly what is done.
+</p>
+
+<blockquote>
+<p>
+The init command initialises a local "opam root" (by default,
+~/.opam/) that holds opam's data and packages. This is a necessary
+step for normal operation of opam. The initial software repositories
+are fetched, and an initial 'switch' can also be installed, according
+to the configuration and options. These can be afterwards configured
+using opam switch and opam repository.
+</p>
+
+<p>
+[&#x2026;]
+</p>
+
+<p>
+Additionally, this command allows to customise some aspects of opam's
+shell integration, when run initially (avoiding the interactive
+dialog), but also at any later time.
+</p>
+</blockquote>
+
+<p>
+The interesting parts are:
+</p>
+
+<ul class="org-ul">
+<li>the opam root is <code>~/.opam</code></li>
+<li>opam uses a shell integration to make our life easier</li>
+<li>opam uses the concept of <i>switch</i></li>
+</ul>
+
+<p>
+A switch is the equivalent of the <code>node_modules</code> folder in npm's
+world. It contains all the packages that are installed. One difference
+with npm is that we can have multiple global switches. As if we could
+have different <code>yarn global</code> projects. It can be handy sometimes, but
+to avoid confusion I recommend to avoid using global switches.
+</p>
+
+<p>
+Default settings can be changed if the <code>-a</code> option is omitted while
+calling <code>opam init</code>.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org1e5fd84" class="outline-2">
+<h2 id="org1e5fd84">Minimal package.json</h2>
+<div class="outline-text-2" id="text-org1e5fd84">
+<p>
+The equivalent of <code>package.json</code> is a <code>app.opam</code> file. The part before
+<code>.opam</code> is the name of the package. So <code>app.opam</code> could be
+<code>webpack.opam</code>. It is possible to have multiple opam files in the same
+directory.
+</p>
+
+<p>
+There is no opam command to manipulate the opam file. Things like <code>npm
+init</code> or <code>yarn add</code> will have to be done by hand.
+</p>
+
+<p>
+A minimal opam file looks like this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-conf">opam-version: <span class="org-string">"2.0"</span>
+name: <span class="org-string">"my-app"</span>
+authors: <span class="org-string">"Louis"</span>
+homepage: <span class="org-string">"https://github.com/khady/example"</span>
+maintainer: <span class="org-string">"Louis <a href="mailto:ex%40ample.com">&lt;ex@ample.com&gt;</a>"</span>
+dev-repo: <span class="org-string">"git+ssh://git@github.com:khady/example.git"</span>
+bug-reports: <span class="org-string">"https://github.com/khady/example/issues"</span>
+version: <span class="org-string">"0.1"</span>
+build: [
+  [ <span class="org-string">"dune"</span> <span class="org-string">"subst"</span> ] {pinned}
+  [ <span class="org-string">"dune"</span> <span class="org-string">"build"</span> <span class="org-string">"-p"</span> name <span class="org-string">"-j"</span> jobs ]
+]
+depends: [
+  <span class="org-string">"dune"</span> {build}
+  <span class="org-string">"opam-lock"</span> {dev}
+]
+</pre>
+</div>
+
+<p>
+<code>{build}</code> tells opam that <code>dune</code> is needed only to build to
+project. <code>{dev}</code> is to mark dev dependencies. There is another way to
+handle dev dependencies for advance usage that I covered <a href="opam-sandbox.html#org11d82bb">in this post</a>.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org87609de" class="outline-2">
+<h2 id="org87609de">npm/yarn commands</h2>
+<div class="outline-text-2" id="text-org87609de">
+</div>
+<div id="outline-container-org043e30c" class="outline-3">
+<h3 id="org043e30c">npm install / yarn</h3>
+<div class="outline-text-3" id="text-org043e30c">
+<p>
+<code>npm install</code> or <code>yarn</code> commands cover multiple opam commands,
+depending on the context.
+</p>
+
+<p>
+First case is in absence of local switch in the current project. It
+can be verified by looking for a <code>_opam</code> directory at the root of the
+project. It corresponds to a npm project without a <code>node_modules</code>
+directory.
+</p>
+
+<p>
+In this first case, we need to initialize a local switch.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">opam switch create . 4.07.0 --deps-only
+</pre>
+</div>
+
+<p>
+The second case is in presence of a local switch.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">opam install . --deps-only
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org8dc67b4" class="outline-3">
+<h3 id="org8dc67b4">npm install &lt;pkg&gt; / yarn add</h3>
+<div class="outline-text-3" id="text-org8dc67b4">
+<p>
+To install a package with opam is easy:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">opam install PACKAGE
+</pre>
+</div>
+
+<p>
+But opam does not modify the <code>app.opam</code> file during the
+installation. It has to be done by hand. This is as simple as adding
+the name of the package in the <code>depends</code> field.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org3c4d0ba" class="outline-3">
+<h3 id="org3c4d0ba">npm link / yarn link</h3>
+<div class="outline-text-3" id="text-org3c4d0ba">
+<p>
+<code>npm link</code> in the opam world is <code>opam pin</code>. Its usage is well
+described in the official documentation. You can find it there:
+</p>
+
+<p>
+<a href="https://opam.ocaml.org/doc/2.0/Usage.html#opam-pin">https://opam.ocaml.org/doc/2.0/Usage.html#opam-pin</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-org4876d99" class="outline-3">
+<h3 id="org4876d99">npm upgrade / yarn upgrade</h3>
+<div class="outline-text-3" id="text-org4876d99">
+<p>
+In this case, there is a direct equivalent in opam. And it is easy to
+remember.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">opam upgrade PACKAGE
+</pre>
+</div>
+
+<p>
+<code>opam upgrade</code> is also able to upgrade <i>all</i> the packages of the local
+switch if no package name is given.
+</p>
+
+<p>
+There is one big difference with npm though. opam stores a local copy
+of the opam repository. Like <code>apt-get</code> does in Debian. So if we often
+want to update this copy before to request an upgrade.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">opam update &amp;&amp; opam upgrade PACKAGE
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orge03669d" class="outline-2">
+<h2 id="orge03669d">Extra package.json concepts</h2>
+<div class="outline-text-2" id="text-orge03669d">
+</div>
+<div id="outline-container-orgc269be9" class="outline-3">
+<h3 id="orgc269be9">dev dependencies</h3>
+<div class="outline-text-3" id="text-orgc269be9">
+<p>
+There is no strict equivalent of the <code>dev-dependencies</code> field of
+<code>package.json</code>. But it is possible to achieve the same thing in two
+ways.
+</p>
+
+<ul class="org-ul">
+<li>By marking with <code>{dev}</code> the package in <code>depends</code></li>
+<li>By using a <code>dev.opam</code> file, as I <a href="opam-sandbox.html#org11d82bb">described there</a>.</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-orgbb277ca" class="outline-3">
+<h3 id="orgbb277ca">lock files</h3>
+<div class="outline-text-3" id="text-orgbb277ca">
+<p>
+Lock files are also not common yet in the opam world. But I talked
+about their usage <a href="opam-sandbox.html#org0af90b7">on this page</a>. It can be summarize to:
+</p>
+
+<ul class="org-ul">
+<li>Using <code>opam lock</code> to generate the lock file when needed (basically
+after each <code>opam install</code> or <code>opam upgrade</code>).</li>
+<li>Adding <code>--locked</code> to all the <code>opam install . --deps-only</code> and <code>opam
+  switch create .</code> commands.</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-orgb75492a" class="outline-3">
+<h3 id="orgb75492a">scripts</h3>
+<div class="outline-text-3" id="text-orgb75492a">
+<p>
+This one doesn't exist in the opam world. The closer we get is the
+equivalent of <code>yarn exec</code>. Which is <code>opam exec</code>.
+</p>
+
+<p>
+Instead of writing a <code>package.json</code> with a script field like this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-json"><span class="org-keyword">"scripts"</span>: <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-keyword">"release"</span>: <span class="org-string">"make release"</span>
+<span class="org-rainbow-delimiters-depth-1">}</span>
+</pre>
+</div>
+
+<p>
+We run <code>opam exec</code> like this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">opam exec -- make release
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgb22666a" class="outline-3">
+<h3 id="orgb22666a">Libraries</h3>
+<div class="outline-text-3" id="text-orgb22666a">
+<p>
+In javascript packages published on npm, the convention is to have one
+library per package. This is not the case in opam. One opam package
+can provide multiple libraries. And there is a tool called ocamlfind
+that is used to get the information related to all those
+libraries. When using a modern build system like dune, there will be
+almost no reason to use ocamlfind by hand.
+</p>
+
+<p>
+There is no official way that I know off to get the list of all the
+libraries installed by a package. The easiest way to get a good
+approximation is something like this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">cat $<span class="org-rainbow-delimiters-depth-1">(</span><span class="org-sh-quoted-exec">opam</span> var re:lib<span class="org-rainbow-delimiters-depth-1">)</span>/META | grep package
+</pre>
+</div>
+
+<p>
+Which tells you than the package <code>re</code> comes with the libraries <code>re</code>,
+<code>re.emacs</code>, <code>re.glob</code>, <code>re.pcre</code>, <code>re.perl</code>, <code>re.posix</code> and <code>re.str</code>.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org151e869" class="outline-2">
+<h2 id="org151e869">Summary</h2>
+<div class="outline-text-2" id="text-org151e869">
+</div>
+<div id="outline-container-orgc913587" class="outline-3">
+<h3 id="orgc913587">Installation</h3>
+<div class="outline-text-3" id="text-orgc913587">
+<ul class="org-ul">
+<li>Follow <a href="https://opam.ocaml.org/doc/2.0/Install.html">https://opam.ocaml.org/doc/2.0/Install.html</a></li>
+<li>run <code>opam init -a</code></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-orge71dfbc" class="outline-3">
+<h3 id="orge71dfbc">Usage</h3>
+<div class="outline-text-3" id="text-orge71dfbc">
+</div>
+<div id="outline-container-org938f8c5" class="outline-4">
+<h4 id="org938f8c5">Starting a new project</h4>
+<div class="outline-text-4" id="text-org938f8c5">
+<p>
+This section does the same as: <code>yarn init</code>.
+</p>
+
+<p>
+Create <code>app.opam</code> file with this content:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-tuareg-opam"><span class="org-keyword">opam-version</span>: <span class="org-string">"2.0"</span>
+<span class="org-keyword">name</span>: <span class="org-string">"my-app"</span>
+<span class="org-keyword">authors</span>: <span class="org-string">"Louis"</span>
+<span class="org-keyword">homepage</span>: <span class="org-string">"https://github.com/khady/example"</span>
+<span class="org-keyword">maintainer</span>: <span class="org-string">"ex@ample.com"</span>
+<span class="org-keyword">dev-repo</span>: <span class="org-string">"git+ssh://git@github.com:khady/example.git"</span>
+<span class="org-keyword">bug-reports</span>: <span class="org-string">"https://github.com/khady/example/issues"</span>
+<span class="org-keyword">version</span>: <span class="org-string">"0.1"</span>
+<span class="org-keyword">build</span>: <span class="org-rainbow-delimiters-depth-1">[</span>
+  <span class="org-rainbow-delimiters-depth-2">[</span> <span class="org-string">"dune"</span> <span class="org-string">"subst"</span> <span class="org-rainbow-delimiters-depth-2">]</span> <span class="org-rainbow-delimiters-depth-2">{</span><span class="org-constant">pinned</span><span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-rainbow-delimiters-depth-2">[</span> <span class="org-string">"dune"</span> <span class="org-string">"build"</span> <span class="org-string">"-p"</span> <span class="org-variable-name">name</span> <span class="org-string">"-j"</span> <span class="org-variable-name">jobs</span> <span class="org-rainbow-delimiters-depth-2">]</span>
+<span class="org-rainbow-delimiters-depth-1">]</span>
+<span class="org-keyword">depends</span>: <span class="org-rainbow-delimiters-depth-1">[</span>
+  <span class="org-string">"dune"</span> <span class="org-rainbow-delimiters-depth-2">{</span><span class="org-constant">build</span><span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-string">"opam-lock"</span> <span class="org-rainbow-delimiters-depth-2">{</span>dev<span class="org-rainbow-delimiters-depth-2">}</span>
+<span class="org-rainbow-delimiters-depth-1">]</span>
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-sh">opam switch create . 4.07.0 --deps-only
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgd55650b" class="outline-4">
+<h4 id="orgd55650b">Updating the list of packages available</h4>
+<div class="outline-text-4" id="text-orgd55650b">
+<p>
+Opam is like <code>apt-get</code>, it requires the execution of a command to get
+the list of new packages available.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">opam update
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgaba8193" class="outline-4">
+<h4 id="orgaba8193">Adding a dependency</h4>
+<div class="outline-text-4" id="text-orgaba8193">
+<p>
+This section does the same as: <code>yarn add</code>.
+</p>
+
+<ul class="org-ul">
+<li>Add a line in the <code>depends</code> field of <code>app.opam</code>:</li>
+</ul>
+
+<div class="org-src-container">
+<pre class="src src-tuareg-opam"><span class="org-keyword">depends</span>: <span class="org-rainbow-delimiters-depth-1">[</span>
+  <span class="org-string">"dune"</span> <span class="org-rainbow-delimiters-depth-2">{</span><span class="org-constant">build</span><span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-string">"owl"</span>
+<span class="org-rainbow-delimiters-depth-1">]</span>
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>Install the new dependency:</li>
+</ul>
+
+<div class="org-src-container">
+<pre class="src src-sh">opam install . --deps-only
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org22d3718" class="outline-4">
+<h4 id="org22d3718">Upgrading a dependency</h4>
+<div class="outline-text-4" id="text-org22d3718">
+<p>
+This section does the same as: <code>yarn upgrade</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">opam upgrade <span class="org-rainbow-delimiters-depth-1">[</span>package<span class="org-rainbow-delimiters-depth-1">]</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org296cd3d" class="outline-4">
+<h4 id="org296cd3d">Removing a dependency</h4>
+<div class="outline-text-4" id="text-org296cd3d">
+<p>
+This section does the same as: <code>yarn remove</code>.
+</p>
+
+<ul class="org-ul">
+<li>Execute <code>opam remove</code> to uninstall the package:</li>
+</ul>
+
+<div class="org-src-container">
+<pre class="src src-sh">opam remove owl
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>Remove the corresponding line from the <code>depends</code> field in
+<code>app.opam</code></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-org5140e95" class="outline-4">
+<h4 id="org5140e95">Installing all the dependencies of project</h4>
+<div class="outline-text-4" id="text-org5140e95">
+<p>
+This section does the same as: <code>yarn install</code>.
+</p>
+
+<p>
+If there is a <code>_opam</code> folder (a local switch) in the project:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">opam install . --deps-only
+</pre>
+</div>
+
+<p>
+Otherwise:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">opam switch create . 4.07.0 --deps-only
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<a class="author" href="https://khady.info">Louis Roché</a> <span class="date">2018-08-30 Thu 00:00</span>
+          <span class="creator"><a href="https://www.gnu.org/software/emacs/">Emacs</a> 25.1.1 (<a href="https://orgmode.org">Org</a> mode 9.2.1)</span>
+</div>
+</body>
+</html>

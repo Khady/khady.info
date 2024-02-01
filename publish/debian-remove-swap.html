@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2019-03-03 Sun 07:49 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resize or remove swap on Debian</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="Louis Roché">
+<meta name="description" content="How to remove the swap on a default debian installation"
+>
+<meta name="keywords" content="debian,swap,lvm">
+<link rel="stylesheet" href="/org.css" type="text/css"><script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2019 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="org-div-home-and-up">
+ <a accesskey="h" href=""> UP </a>
+ |
+ <a accesskey="H" href="archive.html"> HOME </a>
+</div><div id="content">
+<header>
+<h1 class="title">Resize or remove swap on Debian</h1>
+</header><p>
+The Debian installer comes with a convenient tool to do auto
+partitioning. But there is one limit. When using the guided LVM +
+encryption partitioning, there is no easy way to change the size of
+the swap from the installer.
+</p>
+
+<p>
+The solution is to do this operation after the installation is
+finished. Thanks to LVM this is actually very simple. And it can be
+done from the running system itself. All the commands bellow suppose
+default Debian auto partitioning was used. But it shouldn’t be too
+hard to adapt to different configuration.
+</p>
+
+<p>
+In my case, I want to totally delete the swap. When my computer starts
+to swap it becomes barely usable. First thing to do is to disable the
+swap.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">swapoff -a
+</pre>
+</div>
+
+<p>
+Once this is done, the swap partition can be removed.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">lvremove /dev/debian-vg/swap_1
+</pre>
+</div>
+
+<p>
+There is now some disk space that can be reclaimed. Let’s add it to
+the existing partition. Two steps are needed. First one is to extend
+the LVM volume group.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">lvextend -l +100%FREE /dev/debian-vg/root
+</pre>
+</div>
+
+<p>
+Then the ext4 partition can be extended.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">resize2fs /dev/debian-vg/root
+</pre>
+</div>
+
+<p>
+A call to <code>df -h</code> should show that root partition is now bigger.
+</p>
+
+<p>
+As the swap partition doesn’t exist anymore, it must be removed from
+the fstab. Also hibernation won’t be possible anymore. So the
+initramfs must be updated.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">sed -i -e <span class="org-string">'s/^/# /'</span> /etc/initramfs-tools/conf.d/resume
+sed -i -e <span class="org-string">'s|\(/dev/mapper/debian--vg-swap_1\)|# \1|'</span> /etc/fstab
+update-initramfs -u
+</pre>
+</div>
+
+<p>
+The procedure is now over. There is no need to reboot.
+</p>
+
+<p>
+Another solution to reduce the usage of swap is to reduce the chances
+of using the swap. Change <code>/etc/sysctl.conf</code> and put a value between
+10 and 1. Then swap will only be used in last resort.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">vm.swappiness=10
+</pre>
+</div>
+
+<p>
+The whole script:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">swapoff -a
+lvremove /dev/debian-vg/swap_1
+lvextend -l +100%FREE /dev/debian-vg/root
+resize2fs /dev/debian-vg/root
+sed -i -e <span class="org-string">'s/^/# /'</span> /etc/initramfs-tools/conf.d/resume
+sed -i -e <span class="org-string">'s|\(/dev/mapper/debian--vg-swap_1\)|# \1|'</span> /etc/fstab
+update-initramfs -u
+</pre>
+</div>
+</div>
+<div id="postamble" class="status">
+<a class="author" href="https://khady.info">Louis Roché</a> <span class="date">2019-03-03 Sun 00:00</span>
+          <span class="creator"><a href="https://www.gnu.org/software/emacs/">Emacs</a> 25.1.1 (<a href="https://orgmode.org">Org</a> mode 9.2.1)</span>
+</div>
+</body>
+</html>

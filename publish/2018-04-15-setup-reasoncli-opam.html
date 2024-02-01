@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2019-03-03 Sun 07:24 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Good setup to work with reason-cli and opam</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="Louis Roché">
+<meta name="description" content="direnv setup to work with both reason-cli and opam installations"
+>
+<meta name="keywords" content="reasonml,ocaml,direnv,reason-cli">
+<link rel="stylesheet" href="/org.css" type="text/css"><script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2019 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="org-div-home-and-up">
+ <a accesskey="h" href=""> UP </a>
+ |
+ <a accesskey="H" href="archive.html"> HOME </a>
+</div><div id="content">
+<header>
+<h1 class="title">Good setup to work with reason-cli and opam</h1>
+</header><nav id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#org2d0de22">Introduction</a></li>
+<li><a href="#orge4a60b7">Putting merlin in the environment</a></li>
+<li><a href="#orgdec7105">Automatic environment setup using direnv</a></li>
+<li><a href="#org5eff3d1">Launching the editor</a></li>
+<li><a href="#org153e015">Benefits</a></li>
+<li><a href="#org7c24462">Note concerning emacs</a></li>
+<li><a href="#org0751581">TL;DR</a></li>
+</ul>
+</div>
+</nav>
+
+<div id="outline-container-org2d0de22" class="outline-2">
+<h2 id="org2d0de22">Introduction</h2>
+<div class="outline-text-2" id="text-org2d0de22">
+<p>
+How to properly configure the editor for someone using both <a href="https://reasonml.github.io/">ReasonML</a>
+installed from the <a href="https://github.com/reasonml/reason-cli#install">reason-cli</a> and OCaml from opam? This question
+arises when we are doing both native and bucklescript development.
+</p>
+
+<p>
+First thing to remember is that all the editor plugins that really
+need configuration are based on <a href="https://github.com/ocaml/merlin">merlin</a> (as far as I know). More
+precisely on the ocamlmerlin binary. And they will either take the
+first ocamlmerlin binary they will find in the path, or the binary
+from the currently selected opam switch.
+</p>
+
+<p>
+The configuration presented bellow allows us to properly configure our
+environment prior to launch Emacs (with <a href="https://github.com/ocaml/tuareg">tuareg</a> or <a href="https://github.com/reasonml-editor/reason-mode">reason-mode</a>),
+<a href="https://github.com/reasonml-editor/vscode-reasonml">vscode</a>, vim, &#x2026; Once this is done, we can launch our editor from the
+shell with the expected environment and it will pickup the good
+version of merlin. In theory it is also possible to launch our editor
+from our OS launcher rather than from the editor, but then we have to
+be sure to load the good environment globally. And it doesn't
+correspond to the usual workflow when mixing native and bucklescript
+development. So I will not try to get to this point.
+</p>
+
+<p>
+I am using yarn rather than npm because I am more familiar with it and
+the global installation system seems easier to manage. But I guess it
+is possible to reach the same state with npm.
+</p>
+
+<p>
+Also I am using opam2 because it provides nice new features over opam1
+and is already very stable.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orge4a60b7" class="outline-2">
+<h2 id="orge4a60b7">Putting merlin in the environment</h2>
+<div class="outline-text-2" id="text-orge4a60b7">
+<p>
+Once we have installed reason-cli globally using yarn, we will have
+the <code>ocamlmerlin</code> binary in a path like <code>$HOME/.yarn/bin</code>. We can get
+this path from the command <code>yarn global bin</code>.
+</p>
+
+<p>
+For opam, the binary will be in <code>$HOME/.opam/SWITCH/bin</code>. And this
+can be added to our path by calling <code>eval $(opam env --sw=SWITCH)</code>.
+</p>
+
+<p>
+So what we want to do is just to add one of those two paths to the
+environment and then launch our editor.
+</p>
+
+<p>
+By hand in bash, it would be something like this for yarn:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash"><span class="org-variable-name">PATH</span>=<span class="org-string">"$(</span><span class="org-sh-quoted-exec">yarn</span><span class="org-string"> global bin):$PATH"</span> emacs
+</pre>
+</div>
+
+<p>
+And like this for opam:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash"><span class="org-variable-name">PATH</span>=<span class="org-string">"$(</span><span class="org-sh-quoted-exec">opam</span><span class="org-string"> env --switch=SWITCH):$PATH"</span> emacs
+</pre>
+</div>
+
+<p>
+But it is troublesome to do this every time we want to launch our
+editor. It is actually very troublesome because we have to prefix all
+the commands that are using binaries from yarn or opam.
+</p>
+
+<p>
+So we want to update our environment globally for the current
+shell. This can be done with <code>export</code>. But it is even easier to use a
+small utility like <i>direnv</i>.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgdec7105" class="outline-2">
+<h2 id="orgdec7105">Automatic environment setup using direnv</h2>
+<div class="outline-text-2" id="text-orgdec7105">
+<p>
+<a href="https://direnv.net/">direnv</a> behavior is pretty simple. It will look for a <code>.envrc</code> file
+in the current directory or any of its parents. This <code>.envrc</code> file is
+actually a bash script that is sourced by direnv once found. Every
+time we change directory, it will look for a <code>.envrc</code> and update our
+environment.
+</p>
+
+<p>
+The configuration of direnv for each shell is a bit different. I will
+not detail it here. It is better to check the <a href="https://github.com/direnv/direnv#setup">direnv documentation</a>.
+</p>
+
+<p>
+The important parts are what to put in the <code>.envrc</code> file and where to
+put this file.
+</p>
+
+<p>
+The answer to where is at the root of our project.
+</p>
+
+<p>
+And the content of the file is actually very short.
+</p>
+
+<p>
+For a project using opam (so targeting native or bytecode
+compilation):
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash"><span class="org-builtin">eval</span> $<span class="org-rainbow-delimiters-depth-1">(</span><span class="org-sh-quoted-exec">opam</span> env --shell=bash --inplace-path --set-switch --readonly --switch=SWITCH<span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+If we are using a local switch, the <code>--switch=SWITCH</code> part can be
+removed.
+</p>
+
+<p>
+For a project using reason-cli (targeting javascript by using
+bucklescript), the configuration is not much longer:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">PATH_add $<span class="org-rainbow-delimiters-depth-1">(</span><span class="org-sh-quoted-exec">yarn</span> global bin<span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+<code>PATH_add</code> is a function <a href="https://github.com/direnv/direnv#the-stdlib">provided by direnv</a>.
+</p>
+
+<p>
+Then we need to execute <code>direnv allow</code> to tell direnv we know about
+the <code>.envrc</code> in the directory of our project and it is
+legitimate. This is only needed when we create a new <code>.envrc</code>.
+</p>
+
+<p>
+Once all this is done, our <code>.envrc</code> should be automatically used by
+direnv. We can check if it works by executing <code>which ocamlmerlin</code> and
+making sure this is actually the merlin binary we want to use.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org5eff3d1" class="outline-2">
+<h2 id="org5eff3d1">Launching the editor</h2>
+<div class="outline-text-2" id="text-org5eff3d1">
+<p>
+We are now ready to launch the editor. To do so, we need to be in the
+project directory so that direnv does it jobs. And then execute
+<code>emacs</code>, <code>code .</code>, <code>vim</code>, <code>atom</code> or any other command corresponding to
+our favorite editor. That's all.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org153e015" class="outline-2">
+<h2 id="org153e015">Benefits</h2>
+<div class="outline-text-2" id="text-org153e015">
+<p>
+Using direnv allows us to use reason-cli or opam for a project. Or
+even both. But it also has other benefits. One of them very valuable
+is to reuse the same switch for multiple directories. This is very
+convenient while using git worktree.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org7c24462" class="outline-2">
+<h2 id="org7c24462">Note concerning emacs</h2>
+<div class="outline-text-2" id="text-org7c24462">
+<p>
+I am not sure how all the editors plugins are working. But for Emacs
+by default the merlin package will try to look for the ocamlmerlin
+binary in opam. Even if the environment has not been populated by
+<code>opam env</code>. This behavior is not the one expected here. It would take
+merlin from opam even if we added the reason-cli's merlin to our
+path. It is not hard to change this behavior though. Just add this
+line to Emacs configuration:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp"><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">setq</span> merlin-command <span class="org-string">"ocamlmerlin"</span><span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+The whole Emacs configuration I am using for reason and OCaml is
+available in this <a href="https://github.com/Khady/emacs.d/blob/master/config.org#ocamlreason">GitHub repository</a>. It also makes the configuration
+of <code>reason-mode</code> more robust. For someone using <code>use-package</code>, it
+should automatically install everything that it required.
+</p>
+
+<p>
+There is a <a href="https://github.com/wbolster/emacs-direnv">direnv package for Emacs</a> that could allow us to skip
+configuration of the environment prior to launch Emacs. But using this
+plugin rather than setting up the environment first has a big
+disadvantage. As soon as we will jump to a file which is not in a
+sub-directory of the <code>.envrc</code> file, merlin will not be in the path. If
+we use <code>merlin-locate</code> on a function or value coming from a library
+installed by opam it will work. But it is not possible to use merlin
+in the file we landed in.
+</p>
+
+<p>
+Note that this problem doesn't exist while using yarn or local
+switches with opam because all the installed libraries will be in
+sub-directories or <code>.envrc</code>.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org0751581" class="outline-2">
+<h2 id="org0751581">TL;DR</h2>
+<div class="outline-text-2" id="text-org0751581">
+<ol class="org-ol">
+<li>Install direnv</li>
+<li>Go to the root of the project</li>
+<li><p>
+If using reason-cli, execute
+</p>
+<div class="org-src-container">
+<pre class="src src-bash"><span class="org-builtin">echo</span> <span class="org-string">'PATH_add $(</span><span class="org-sh-quoted-exec">yarn</span><span class="org-string"> global bin)'</span> | tee .envrc
+</pre>
+</div></li>
+<li><p>
+If using opam, execute
+</p>
+<div class="org-src-container">
+<pre class="src src-bash"><span class="org-builtin">echo</span> <span class="org-string">'eval $(</span><span class="org-sh-quoted-exec">opam</span><span class="org-string"> env --shell=bash --inplace-path --set-switch --readonly --switch=SWITCH)'</span> | tee .envrc
+</pre>
+</div></li>
+<li>Execute <code>direnv allow</code></li>
+<li>Launch editor</li>
+</ol>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<a class="author" href="https://khady.info">Louis Roché</a> <span class="date">2018-04-15 Sun 00:00</span>
+          <span class="creator"><a href="https://www.gnu.org/software/emacs/">Emacs</a> 25.1.1 (<a href="https://orgmode.org">Org</a> mode 9.2.1)</span>
+</div>
+</body>
+</html>

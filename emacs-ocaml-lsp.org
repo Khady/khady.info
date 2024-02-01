@@ -1,0 +1,207 @@
+#+TITLE: Emacs configuration for merlin-lsp, the OCaml LSP server
+#+DATE: [2019-03-04 Mon]
+#+DESCRIPTION: How to configure lsp-mode in emacs to use the OCaml merlin-lsp server
+#+KEYWORDS: lsp,ocaml,merlin,emacs,lsp-mode
+#+LANGUAGE: en
+
+Since the [2019-01-28 Mon], there is an implementation of LSP server
+[[https://github.com/ocaml/merlin/pull/905][integrated into merlin]]. It's not the first LSP server for OCaml. There
+are at least two other servers that exist. But having one officially
+integrated in merlin provides a few guaranties.
+
+I built an extension to merlin, [[https://github.com/Khady/merlin-eldoc][merlin-eldoc]], that provides some
+facilities on top of what comes in the default merlin. Especially
+highlighting all the occurrences of a value, jumping between the
+occurrences, and automatically display its type. Using merlin-lsp, it
+should be possible to have all those nice features plus the original
+ones from merlin with very little configuration.
+
+Emacs has two LSP clients. Here I will describe how to configure
+[[https://github.com/emacs-lsp/lsp-mode][lsp-mode]], which in my experience works better than [[https://github.com/joaotavora/eglot][eglot]].
+
+Note that [[https://github.com/emacs-lsp-legacy/lsp-ocaml][lsp-ocaml]], a configuration module for lsp-mode, is a
+deprecated project. Now lsp-mode is enough.
+
+First step is to install merlin-lsp. There is no package published on
+opam yet. So it has to be pinned.
+
+#+begin_src bash
+opam pin add merlin-lsp.dev https://github.com/ocaml/merlin.git
+#+end_src
+
+Then comes the Emacs part. lsp-mode can be installed from melpa. And
+works with emacs25+. The basic configuration to get to a working point
+is short.
+
+#+begin_src emacs-lisp
+(require 'lsp-mode)
+(lsp-register-client
+   (make-lsp-client
+    :new-connection (lsp-stdio-connection
+                     '("opam" "exec" "--" "ocamlmerlin-lsp"))
+    :major-modes '(caml-mode tuareg-mode)
+    :server-id 'ocamlmerlin-lsp))
+#+end_src
+
+With those lines in your Emacs configuration, you must now have the
+=lsp= command available. If you visit an OCaml file and run it, it
+will try to connect to the server.
+
+During the connection to merlin-lsp, it should create a buffer name
+=*lsp-log*=. Its content in case of successful connection looks like
+this:
+
+#+begin_src text
+Command "ocaml-language-server --stdio" is not present on the path.
+Command "opam exec -- ocamlmerlin-lsp" is present on the path.
+Found the following clients for /home/louis/Code/demo/src/main.ml: (server-id ocamlmerlin-lsp, priority 0)
+The following clients were selected based on priority: (server-id ocamlmerlin-lsp, priority 0)
+#+end_src
+
+Normally, lsp-mode should have configured =xref= automatically and the
+most important features of merlin should already be available.
+
+- Jumping from a value to its definition, using =M-.= or
+  =xref-find-definitions= or =lsp-find-definition= (the equivalent of
+  =merlin-locate=).
+- Listing the occurrences of a value, with =M.?= or
+  =xref-find-references= or =lsp-find-references= (the equivalent of
+  =merlin-occurrences=).
+- Displaying the type of the value at point, with a message in the
+  minibuffer (relying on eldoc) or by calling
+  =lsp-describe-thing-at-point= (the equivalent of
+  =merlin-type-enclosing=).
+- Listing the errors in the current file, with flycheck or flymake.
+- Completion of variable and function names.
+
+This list is not exhaustive. It even has features that are not
+available with the usual merlin. =lsp-goto-type-definition= is like
+locate, but for the type of the expression. =lsp-lens-show= is the
+equivalent of the code lens in vscode.
+
+Some extensions to lsp-mode are available, to have a fancier display
+or nicer completion.
+
+- [[https://github.com/tigersoldier/company-lsp][company-lsp]]
+- [[https://github.com/emacs-lsp/lsp-ui][lsp-ui]]
+- [[https://github.com/yyoncho/helm-lsp/][helm-lsp]]
+
+There are a few things in the default configuration of lsp-mode that I
+don't like. Especially, it tries to display the type at point even
+when the point is not on some code. So I came up with a few changes,
+mostly imported from merlin-eldoc. I am publishing here my whole
+configuration, relying on =use-package=. I hope it can help you to
+start using merlin-lsp.
+
+Don't hesitate to give a hand to implement missing features in
+merlin-lsp! It is usually not as hard as you imagine.
+
+#+begin_src emacs-lisp
+(defun my/merlin-lsp--current-font-among-fonts-p (pos fonts)
+  "If current font at POS is among FONTS."
+  (let* ((fontfaces (get-text-property pos 'face)))
+    (when (not (listp fontfaces))
+      (setf fontfaces (list fontfaces)))
+    (delq nil
+          (mapcar (lambda (f)
+                    (member f fonts))
+                  fontfaces))))
+
+(defun my/merlin-lsp--in-comment-p (pos)
+  "Return non-nil if character at POS is comment or documentation.
+This is done by comparing font face.  So a mode such as
+`tuareg-mode' or `reason-mode' must be activated in the buffer
+before to call this function."
+  (my/merlin-lsp--current-font-among-fonts-p pos '(font-lock-comment-face
+                                                   font-lock-comment-delimiter-face
+                                                   font-lock-doc-face)))
+
+(defun my/merlin-lsp--in-string-p (pos)
+  "Return non-nil if character at POS is string.
+This is done by comparing font face.  So a mode such as
+`tuareg-mode' or `reason-mode' must be activated in the buffer
+before to call this function."
+  (my/merlin-lsp--current-font-among-fonts-p pos '(font-lock-string-face)))
+
+(defun my/merlin-lsp--in-keyword-p (pos)
+  "Return non-nil if character at POS is keyword.
+This is done by comparing font face.  So a mode such as
+`tuareg-mode' or `reason-mode' must be activated in the buffer
+before to call this function."
+  (my/merlin-lsp--current-font-among-fonts-p pos '(tuareg-font-lock-governing-face
+                                                   font-lock-keyword-face)))
+
+(defun my/merlin-lsp--in-operator-p (pos)
+  "Return non-nil if character at POS is operator.
+This is done by comparing font face.  So a mode such as
+`tuareg-mode' or `reason-mode' must be activated in the buffer
+before to call this function."
+  (my/merlin-lsp--current-font-among-fonts-p pos '(tuareg-font-lock-operator-face)))
+
+(defun my/merlin-lsp--valid-type-position-p (pos)
+  "Return non-nil if POS is in a place valid to get a type."
+  (let ((symbol (thing-at-point 'symbol))
+        (operator (my/merlin-lsp--in-operator-p pos))
+        (string (my/merlin-lsp--in-string-p pos))
+        (comment (my/merlin-lsp--in-comment-p pos))
+        (keyword (my/merlin-lsp--in-keyword-p pos)))
+    (and (or symbol operator string)
+         (not comment)
+         (or (not keyword) string))))
+
+(defun my/merlin-lsp--hover ()
+  "Call lsp-hover only in valid hover positions."
+  (if (my/merlin-lsp--valid-type-position-p (point))
+      (lsp-hover)
+    (lsp-ui-doc-hide)))
+
+(defun my/merlin-lsp--document-highlight ()
+  "Call lsp-document-highlight only in valid hover positions."
+  (when (my/merlin-lsp--valid-type-position-p (point))
+    (lsp-document-highlight)))
+
+(defun my/merlin-lsp--setup-eldoc ()
+  "Replace default `lsp-eldoc-hook' with custom functions checking
+the validity of the position."
+  (setq-local lsp-eldoc-hook
+              '(my/merlin-lsp--hover my/merlin-lsp--document-highlight)))
+
+(defun my/merlin-lsp-register ()
+  "Register a lsp server for OCaml. This functions must be called
+only after lsp-mode has been loaded."
+  (lsp-register-client
+   (make-lsp-client
+    :new-connection (lsp-stdio-connection
+                     '("opam" "exec" "--" "ocamlmerlin-lsp"))
+    :major-modes '(caml-mode tuareg-mode reason-mode)
+    :server-id 'ocamlmerlin-lsp)))
+
+(defun my/merlin-lsp ()
+  "Setup and start merlin-lsp."
+  (my/merlin-lsp--setup-eldoc)
+  (lsp))
+
+(use-package helm-lsp :ensure t)
+(use-package lsp-ui
+  :ensure t
+  :custom
+  (lsp-ui-doc-position 'bottom)
+  (lsp-ui-sideline-enable nil)
+  (lsp-ui-peek-peek-height 5))
+(use-package company-lsp
+  :ensure t
+  :custom
+  (company-lsp-cache-candidates nil)
+  :config
+  (push 'company-lsp company-backends))
+(use-package lsp-mode
+  :ensure t
+  :custom
+  (lsp-log-max 100000)
+  :config
+  (my/merlin-lsp-register)
+  :bind (:map lsp-ui-mode-map
+              ([remap xref-find-references] . lsp-ui-peek-find-references))
+  :hook
+  (tuareg-mode . my/merlin-lsp))
+#+end_src

@@ -1,0 +1,173 @@
+#+TITLE: Lock file and dev dependencies with opam
+#+DATE: [2018-08-24 Fri]
+#+DESCRIPTION: How to work with a sandbox workflow when using opam
+#+KEYWORDS: OCaml,opam,npm,sandbox,lock file
+#+LANGUAGE: en
+
+When developing an OCaml application or a library, it is sometimes
+convenient to have a way to ensure that every developer is using the
+exact same set of packages in their opam switches. It avoids spending
+hours understanding how all minor versions of every packages are
+interacting with each other.
+
+This workflow is not the one advertised by default when using
+~opam~. But since the version 2 of opam, there is support for
+everything we need for a good sandbox setup. Namely: local switches,
+installing dependencies of a package without having to pin it, and
+lock files. You should definitely upgrade to opam2 if you haven't yet!
+
+In addition to dependencies for the application itself, it is
+convenient to have a way of describing dependencies that are necessary
+only for people working on the development. This is the
+~dev-dependencies~ field in ~package.json~ for npm/yarn.
+
+I will try to describe what is my setup to work with a sandbox
+workflow.
+
+Note that it works even better when [[file:opam-compilation-cache.org][opam is configured to use
+compilation cache]].
+
+** Lock file
+
+The support for lock files is not included in opam by default. But
+there is a plugin which can be installed from opam and does everything
+I need. It is developed by the author of opam. So there should be
+nothing shady there.
+
+Installing the plugin and creating a lock file can be done in two
+commands.
+
+#+BEGIN_SRC sh
+opam install opam-lock
+opam lock ./app.opam
+#+END_SRC
+
+This will create a ~app.opam.locked~ file. This is a normal opam
+file. But it contains an exact version for all of the dependencies.
+
+The equivalent of ~npm install~ or ~yarn~ in a directory would be:
+
+#+BEGIN_SRC sh
+opam install . --deps-only --locked
+#+END_SRC
+
+This command will install all the opam packages that are defined in
+the current directory, using locked versions if available.
+
+- ~.~ tells opam to search for opam files in the current directory.
+- ~--deps-only~ tells opam to only install the dependencies of the
+  packages. Not the packages themselves. As the goal is to develop
+  those packages, it is not necessary to have them installed.
+- ~--locked~ tells opam to take the locked version of an opam file if
+  available. So when both ~app.opam~ and ~app.opam.locked~ are
+  available, ~app.opam.locked~ will be used.
+
+If there are multiple packages in the same directory, and one wants to
+install only a subset of them, the expected packages must be specified
+during the install command.
+
+#+BEGIN_SRC sh
+opam install ./app1.opam.locked ./app2.opam.locked --deps-only
+#+END_SRC
+
+Once the lock file is created, new people starting to work on the
+project would setup their environment in one command:
+
+#+BEGIN_SRC sh
+opam switch create . --deps-only --locked
+#+END_SRC
+
+There is no need to specify an OCaml version when creating the
+switch. It is defined in the lock file. The ~--deps-only~ and
+~--locked~ options have the same effects as described previously.
+
+I used to rely on ~opam switch export~ and ~opam switch import~ to
+simulate lock files. But it doesn't work as well. It contains all the
+extra packages that one might have in the switch for example. This is
+still the best solution if /all/ the versions of /all/ the packages
+must be fixed.
+
+** Development dependencies
+
+Unfortunately there is no support for dev dependencies in opam
+directly. More precisely there is a ~dev~ variable that can be used on
+the dependencies. But the dependencies marked like this will be
+installed when the package is pinned too. Which may not be the
+expected behavior. This is fine only for packages that are not meant
+to be published.
+
+My solution is to create an extra ~dev.opam~ file. This package will
+contain only dependencies. No build command is required.
+
+#+BEGIN_SRC tuareg-opam
+opam-version: "2.0"
+maintainer: "Louis Roché <louis@louisroche.net>"
+authors: "Louis Roché <louis@louisroche.net>"
+homepage: "https://github.com/Khady/ocaml-junit"
+bug-reports: "https://github.com/Khady/ocaml-junit/issues"
+depends: [
+  "merlin"
+  "ocp-indent"
+  "ocp-index"
+  "opam-lock"
+  "utop"
+]
+#+END_SRC
+
+Now, the ~opam install~ command described previously will also install
+all the dev dependencies.
+
+#+BEGIN_SRC sh
+opam install . --deps-only --locked
+#+END_SRC
+
+~--locked~ is not required here, as there is no strict constrain on
+the versions of the dev dependencies. But I think it's a good practice
+to use it.
+
+For the record, the equivalent using the ~dev~ variable is:
+
+#+BEGIN_SRC tuareg-opam
+opam-version: "2.0"
+maintainer: "Louis Roché <louis@louisroche.net>"
+authors: "Louis Roché <louis@louisroche.net>"
+homepage: "https://github.com/Khady/ocaml-junit"
+bug-reports: "https://github.com/Khady/ocaml-junit/issues"
+license: "LGPLv3+ with OCaml linking exception"
+dev-repo: "git+https://github.com/Khady/ocaml-junit.git"
+doc: "https://khady.github.io/ocaml-junit/"
+tags: ["junit" "jenkins"]
+depends: [
+  "ocaml" {>= "4.02.3"}
+  "jbuilder" {build & >= "1.0+beta10"}
+  "ptime"
+  "tyxml" {>= "4.0.0"}
+  "odoc" {with-doc & >= "1.1.1"}
+  "merlin" {dev}
+  "ocp-indent" {dev}
+  "ocp-index" {dev}
+  "opam-lock" {dev}
+  "utop" {dev}
+]
+#+END_SRC
+
+** TL;DR
+
+*** Create a lock file
+
+#+BEGIN_SRC sh
+opam install opam-lock
+opam lock ./app.opam
+#+END_SRC
+
+*** Create a sandbox for an application with lock file and dev dependencies
+
+#+BEGIN_SRC sh
+opam switch create . --deps-only --locked
+#+END_SRC
+
+*** Update the sandbox state after a modification of the opam file
+
+#+BEGIN_SRC sh
+opam install . --deps-only --locked
+#+END_SRC

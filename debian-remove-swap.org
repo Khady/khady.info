@@ -1,0 +1,78 @@
+#+TITLE: Resize or remove swap on Debian
+#+DATE: [2019-03-03 Sun]
+#+DESCRIPTION: How to remove the swap on a default debian installation
+#+KEYWORDS: debian,swap,lvm
+#+LANGUAGE: en
+
+The Debian installer comes with a convenient tool to do auto
+partitioning. But there is one limit. When using the guided LVM +
+encryption partitioning, there is no easy way to change the size of
+the swap from the installer.
+
+The solution is to do this operation after the installation is
+finished. Thanks to LVM this is actually very simple. And it can be
+done from the running system itself. All the commands bellow suppose
+default Debian auto partitioning was used. But it shouldn’t be too
+hard to adapt to different configuration.
+
+In my case, I want to totally delete the swap. When my computer starts
+to swap it becomes barely usable. First thing to do is to disable the
+swap.
+
+#+begin_src bash
+swapoff -a
+#+end_src
+
+Once this is done, the swap partition can be removed.
+
+#+begin_src bash
+lvremove /dev/debian-vg/swap_1
+#+end_src
+
+There is now some disk space that can be reclaimed. Let’s add it to
+the existing partition. Two steps are needed. First one is to extend
+the LVM volume group.
+
+#+begin_src bash
+lvextend -l +100%FREE /dev/debian-vg/root
+#+end_src
+
+Then the ext4 partition can be extended.
+
+#+begin_src bash
+resize2fs /dev/debian-vg/root
+#+end_src
+
+A call to =df -h= should show that root partition is now bigger.
+
+As the swap partition doesn’t exist anymore, it must be removed from
+the fstab. Also hibernation won’t be possible anymore. So the
+initramfs must be updated.
+
+#+begin_src bash
+sed -i -e 's/^/# /' /etc/initramfs-tools/conf.d/resume
+sed -i -e 's|\(/dev/mapper/debian--vg-swap_1\)|# \1|' /etc/fstab
+update-initramfs -u
+#+end_src
+
+The procedure is now over. There is no need to reboot.
+
+Another solution to reduce the usage of swap is to reduce the chances
+of using the swap. Change =/etc/sysctl.conf= and put a value between
+10 and 1. Then swap will only be used in last resort.
+
+#+begin_src text
+vm.swappiness=10
+#+end_src
+
+The whole script:
+
+#+begin_src bash
+swapoff -a
+lvremove /dev/debian-vg/swap_1
+lvextend -l +100%FREE /dev/debian-vg/root
+resize2fs /dev/debian-vg/root
+sed -i -e 's/^/# /' /etc/initramfs-tools/conf.d/resume
+sed -i -e 's|\(/dev/mapper/debian--vg-swap_1\)|# \1|' /etc/fstab
+update-initramfs -u
+#+end_src

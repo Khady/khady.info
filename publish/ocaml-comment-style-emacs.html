@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2019-03-03 Sun 07:24 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Configure the style of OCaml comments in Emacs</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="Louis Roché">
+<meta name="description" content="Emacs configuration to change the style of OCaml comments"
+>
+<meta name="keywords" content="Emacs,OCaml,comments">
+<link rel="stylesheet" href="/org.css" type="text/css"><script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2019 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="org-div-home-and-up">
+ <a accesskey="h" href=""> UP </a>
+ |
+ <a accesskey="H" href="archive.html"> HOME </a>
+</div><div id="content">
+<header>
+<h1 class="title">Configure the style of OCaml comments in Emacs</h1>
+</header><p>
+Tuareg, the mode for OCaml code in Emacs, has been <a href="https://github.com/ocaml/tuareg/commit/ed5cc2a5d6b1451314eb2d55fa5ab2db0fa6803a">updated last year</a>
+to change how comments are working and apply a different style. I am
+not a big fan of the new style and will try to explain how to change
+it.
+</p>
+
+<p>
+As an example, I am using this snippet of code, select it all and use
+<code>M-;</code> to comment it.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ocaml"><span class="org-tuareg-font-lock-governing">let</span> <span class="org-function-name">f</span><span class="org-variable-name"> </span><span class="org-tuareg-font-lock-operator"><span class="org-rainbow-delimiters-depth-1">()</span></span> <span class="org-tuareg-font-lock-operator">=</span>
+  <span class="org-tuareg-font-lock-governing">let</span> <span class="org-variable-name">a</span> <span class="org-tuareg-font-lock-operator">=</span> 1 <span class="org-tuareg-font-lock-governing">in</span>
+  <span class="org-tuareg-font-lock-governing">let</span> <span class="org-variable-name">b</span> <span class="org-tuareg-font-lock-operator">=</span> 2 <span class="org-tuareg-font-lock-governing">in</span>
+  a<span class="org-tuareg-font-lock-operator">,</span> b
+</pre>
+</div>
+
+<p>
+The old comment style was like this, with each line commented
+individually:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ocaml"><span class="org-comment-delimiter">(* </span><span class="org-comment">let f () = </span><span class="org-comment-delimiter">*)</span>
+<span class="org-comment-delimiter">(*   </span><span class="org-comment">let a = 1 in </span><span class="org-comment-delimiter">*)</span>
+<span class="org-comment-delimiter">(*   </span><span class="org-comment">let b = 2 in </span><span class="org-comment-delimiter">*)</span>
+<span class="org-comment-delimiter">(*   </span><span class="org-comment">a, b </span><span class="org-comment-delimiter">*)</span>
+</pre>
+</div>
+
+<p>
+It has been changed to this style, with only one comment for the whole
+block and a prefix on each line:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ocaml"><span class="org-comment-delimiter">(* </span><span class="org-comment">let f () =</span>
+<span class="org-comment"> *   let a = 1 in</span>
+<span class="org-comment"> *   let b = 2 in</span>
+<span class="org-comment"> *   a, b </span><span class="org-comment-delimiter">*)</span>
+</pre>
+</div>
+
+<p>
+The new behaviors comes from this line in tuareg:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp"><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">setq-local</span> comment-style 'multi-line<span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+<code>comment-style</code> default value is <code>'indent</code>. Which corresponds to the
+old comment style described previously. Other styles are available but
+won't be described here. Look for them in <code>C-h v RET comment-style
+RET</code>.
+</p>
+
+<p>
+I don't mind to have one comment for a whole block. It makes it easier
+for other editors to handle. It is less noise. But I don't like that
+all lines are prefixed with a <code>*</code>. Because other editors have to be
+configured to remove those extra characters automatically. Because
+they have to be removed by hand if a few lines are moved away from the
+comment. And they are not good for accessibility.
+</p>
+
+<p>
+So how to keep using only one comment but without prefix? The answer
+is in the <code>comment-continue</code> variable. The documentation is accessible
+as <code>C-h v RET comment-continue RET</code>.
+</p>
+
+<blockquote>
+<p>
+Continuation string to insert for multiline comments.
+This string will be added at the beginning of each line except the very
+first one when commenting a region with a commenting style that allows
+comments to span several lines.
+It should generally have the same length as ‘comment-start’ in order to
+preserve indentation.
+If it is nil a value will be automatically derived from ‘comment-start’
+by replacing its first character with a space.
+</p>
+</blockquote>
+
+<p>
+To remove the prefix the content of <code>comment-continue</code> should be
+updated from <code class="src src-emacs-lisp"><span class="org-string">" * "</span></code> to
+<code class="src src-emacs-lisp"><span class="org-string">"   "</span></code>.
+</p>
+
+<p>
+To do so, the Emacs configuration has to be updated. I think it's
+better to update this behavior only while editing a file in tuareg
+mode and so I put the configuration in a tuareg hook.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp"><span class="org-rainbow-delimiters-depth-1">(</span>add-hook 'tuareg-mode-hook
+          <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">lambda</span> <span class="org-rainbow-delimiters-depth-3">()</span> <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">setq-local</span> comment-continue <span class="org-string">"   "</span><span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+Now if I comment my snippet I get the expected result:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ocaml"><span class="org-comment-delimiter">(* </span><span class="org-comment">let f () =</span>
+<span class="org-comment">     let a = 1 in</span>
+<span class="org-comment">     let b = 2 in</span>
+<span class="org-comment">     a, b </span><span class="org-comment-delimiter">*)</span>
+</pre>
+</div>
+
+<p>
+If you just want to go back to the old behavior, the configuration is:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp"><span class="org-rainbow-delimiters-depth-1">(</span>add-hook 'tuareg-mode-hook
+          <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">lambda</span> <span class="org-rainbow-delimiters-depth-3">()</span> <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">setq-local</span> comment-style 'indent<span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+</div>
+<div id="postamble" class="status">
+<a class="author" href="https://khady.info">Louis Roché</a> <span class="date">2018-04-22 Sun 00:00</span>
+          <span class="creator"><a href="https://www.gnu.org/software/emacs/">Emacs</a> 25.1.1 (<a href="https://orgmode.org">Org</a> mode 9.2.1)</span>
+</div>
+</body>
+</html>

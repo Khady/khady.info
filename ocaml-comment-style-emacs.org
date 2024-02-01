@@ -1,0 +1,102 @@
+#+TITLE: Configure the style of OCaml comments in Emacs
+#+DATE: [2018-04-22 Sun]
+#+DESCRIPTION: Emacs configuration to change the style of OCaml comments
+#+KEYWORDS: Emacs,OCaml,comments
+#+LANGUAGE: en
+
+Tuareg, the mode for OCaml code in Emacs, has been [[https://github.com/ocaml/tuareg/commit/ed5cc2a5d6b1451314eb2d55fa5ab2db0fa6803a][updated last year]]
+to change how comments are working and apply a different style. I am
+not a big fan of the new style and will try to explain how to change
+it.
+
+As an example, I am using this snippet of code, select it all and use
+~M-;~ to comment it.
+
+#+BEGIN_SRC ocaml
+let f () =
+  let a = 1 in
+  let b = 2 in
+  a, b
+#+END_SRC
+
+The old comment style was like this, with each line commented
+individually:
+
+#+BEGIN_SRC ocaml
+(* let f () = *)
+(*   let a = 1 in *)
+(*   let b = 2 in *)
+(*   a, b *)
+#+END_SRC
+
+It has been changed to this style, with only one comment for the whole
+block and a prefix on each line:
+
+#+BEGIN_SRC ocaml
+(* let f () =
+ ,*   let a = 1 in
+ ,*   let b = 2 in
+ ,*   a, b *)
+#+END_SRC
+
+The new behaviors comes from this line in tuareg:
+
+#+BEGIN_SRC emacs-lisp
+(setq-local comment-style 'multi-line)
+#+END_SRC
+
+~comment-style~ default value is ~'indent~. Which corresponds to the
+old comment style described previously. Other styles are available but
+won't be described here. Look for them in ~C-h v RET comment-style
+RET~.
+
+I don't mind to have one comment for a whole block. It makes it easier
+for other editors to handle. It is less noise. But I don't like that
+all lines are prefixed with a ~*~. Because other editors have to be
+configured to remove those extra characters automatically. Because
+they have to be removed by hand if a few lines are moved away from the
+comment. And they are not good for accessibility.
+
+So how to keep using only one comment but without prefix? The answer
+is in the ~comment-continue~ variable. The documentation is accessible
+as ~C-h v RET comment-continue RET~.
+
+#+BEGIN_QUOTE
+Continuation string to insert for multiline comments.
+This string will be added at the beginning of each line except the very
+first one when commenting a region with a commenting style that allows
+comments to span several lines.
+It should generally have the same length as ‘comment-start’ in order to
+preserve indentation.
+If it is nil a value will be automatically derived from ‘comment-start’
+by replacing its first character with a space.
+#+END_QUOTE
+
+To remove the prefix the content of ~comment-continue~ should be
+updated from src_emacs-lisp[:exports code]{" * "} to
+src_emacs-lisp[:exports code]{"   "}.
+
+To do so, the Emacs configuration has to be updated. I think it's
+better to update this behavior only while editing a file in tuareg
+mode and so I put the configuration in a tuareg hook.
+
+#+BEGIN_SRC emacs-lisp
+(add-hook 'tuareg-mode-hook
+          (lambda () (setq-local comment-continue "   ")))
+#+END_SRC
+
+Now if I comment my snippet I get the expected result:
+
+#+BEGIN_SRC ocaml
+(* let f () =
+     let a = 1 in
+     let b = 2 in
+     a, b *)
+#+END_SRC
+
+If you just want to go back to the old behavior, the configuration is:
+
+#+BEGIN_SRC emacs-lisp
+(add-hook 'tuareg-mode-hook
+          (lambda () (setq-local comment-style 'indent)))
+#+END_SRC

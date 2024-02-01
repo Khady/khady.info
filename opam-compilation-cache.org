@@ -1,0 +1,120 @@
+#+TITLE: Compilation cache in opam
+#+DATE: [2018-08-23 Thu]
+#+DESCRIPTION: How to enable compilation cache in opam to enjoy fast re-installation
+#+KEYWORDS: OCaml,opam,cache
+#+LANGUAGE: en
+
+There is some [[https://github.com/ocaml/opam/issues/629#issuecomment-352042373][work going on]] opam to add support for compilation
+cache. Compilation cache means instantaneous re-installation of
+packages that have been already installed previously, even if it was
+in another switch. It is a very convenient feature when working with
+local switches, git worktree and lock files.
+
+If each git branch is in its own directory with its own opam switch,
+it might be very long to create a switch for each branch. It is
+possible to use ~opam switch link~ to reduce the number of actual
+switches. But it doesn't work when the branches are using different
+versions of the same packages.
+
+Also there are some tools like utop, merlin, ocp-indent, ocp-index,
+that we want to install in basically every switch. And we don't want
+to spend a long time waiting for them to get compiled.
+
+Those are situations where compilation cache shines. As long as a
+package has been installed once, installing it again is basically a
+no-op.
+
+To enable the cache, we need to download this file:
+[[https://github.com/ocaml/opam/blob/4756ca1/shell/opam-bin-cache.sh][opam-bin-cache.sh]]. And to to make it executable.
+
+The ~sandbox.sh~ hook is stored by opam in
+~$HOME/.opam/opam-init/hooks~. ~opam-bin-cache.sh~ can be moved there
+too.
+
+#+BEGIN_SRC bash
+curl "https://raw.githubusercontent.com/ocaml/opam/4756ca1870d65130d5b909309c2041ce05b06a4e/shell/opam-bin-cache.sh" -O
+chmod +x opam-bin-cache.sh
+mv opam-bin-cache.sh $HOME/.opam/opam-init/hooks/
+#+END_SRC
+
+Then the opam configuration file has to be modified. At the end of the
+configuration, there are 3 wrap commands using ~sandbox.sh~. It looks
+like this:
+
+#+BEGIN_SRC conf
+wrap-build-commands:
+ ["%{hooks}%/sandbox.sh" "build"] {os = "linux" | os = "macos"}
+wrap-install-commands:
+ ["%{hooks}%/sandbox.sh" "install"] {os = "linux" | os = "macos"}
+wrap-remove-commands:
+ ["%{hooks}%/sandbox.sh" "remove"] {os = "linux" | os = "macos"}
+#+END_SRC
+
+Those lines must be replaced by:
+
+#+BEGIN_SRC conf
+pre-install-commands:
+  ["%{hooks}%/opam-bin-cache.sh" "restore" build-id name] {?build-id}
+wrap-build-commands: [
+  ["%{hooks}%/opam-bin-cache.sh" "wrap" build-id] {?build-id}
+  ["%{hooks}%/sandbox.sh" "build"] {os = "linux"}
+]
+wrap-install-commands: [
+  ["%{hooks}%/opam-bin-cache.sh" "wrap" build-id] {?build-id}
+  ["%{hooks}%/sandbox.sh" "install"] {os = "linux"}
+]
+wrap-remove-commands: ["%{hooks}%/sandbox.sh" "remove"] {os = "linux"}
+post-install-commands:
+  ["%{hooks}%/opam-bin-cache.sh" "store" build-id installed-files]
+    {?build-id & error-code = "0"}
+#+END_SRC
+
+For people using multiple ocaml root, another solution is to put
+~opam-bin-cache.sh~ in the ~PATH~, and to modify ~$HOME/.opam/config~
+this way:
+
+#+BEGIN_SRC conf
+pre-install-commands:
+  ["opam-bin-cache.sh" "restore" build-id name] {?build-id}
+wrap-build-commands: [
+  ["opam-bin-cache.sh" "wrap" build-id] {?build-id}
+  ["%{hooks}%/sandbox.sh" "build"] {os = "linux"}
+]
+wrap-install-commands: [
+  ["opam-bin-cache.sh" "wrap" build-id] {?build-id}
+  ["%{hooks}%/sandbox.sh" "install"] {os = "linux"}
+]
+wrap-remove-commands: ["%{hooks}%/sandbox.sh" "remove"] {os = "linux"}
+post-install-commands:
+  ["opam-bin-cache.sh" "store" build-id installed-files]
+    {?build-id & error-code = "0"}
+#+END_SRC
+
+Let's see how it works.
+
+#+BEGIN_SRC bash
+mkdir /tmp/demo{1,2}
+cd /tmp/demo1
+opam switch create . --empty
+opam install ocaml-base-compiler.4.06.1 merlin utop core # takes 5 minutes
+cd /tmp/demo2
+opam switch create . --empty
+opam install ocaml-base-compiler.4.06.1 merlin utop core # takes 10 seconds
+#+END_SRC
+
+I hope this setting can push people to use more local switches and
+avoid some of the confusion coming with global switches.
+
+Please note that this is still experimental. There are some issues
+with ~ocamlfind~ that are documented [[https://github.com/ocaml/opam-repository/issues/10863][here]].
+
+~esy~, another cli tool to get opam packages, also provides
+compilation cache. They [[https://discordapp.com/channels/235176658175262720/235200837608144898/481805082967408640][claimed to have solve those problems]].
+
+#+BEGIN_QUOTE
+andreypopp : @Khady in esy findlib.conf only contains a single entry which points to ocamlfind itself, then esy constructs $OCAMLPATH which includes all packages in a sandbox
+
+andreypopp : we also have custom build steps for ocamlfind which re-create $OCAMLLIB inside ocamlfind so that ocamlfind can put topfind in there (this is needed b/c some pacages like to see topfind inside $OCAMLLIB).
+
+andreypopp : details: https://github.com/esy-ocaml/esy-opam-override/blob/6/packages/ocamlfind.%3C1.7.0/files/_esy/build
+#+END_QUOTE
